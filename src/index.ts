@@ -5,7 +5,9 @@ import { botHandlers } from './bot/handlers/botHandlers';
 
 config();
 
-initializeDatabase();
+const bdUrl = `mongodb://${process.env.SERVER_IP}:27017`; // если MongoDB работает локально на порту 27017
+
+initializeDatabase(bdUrl);
 
 export const bot = new TelegramBot(process.env.BOT_TOKEN!, { polling: true });
 

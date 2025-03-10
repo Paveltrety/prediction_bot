@@ -9,15 +9,13 @@ export let botDb: Db;
 export let predictionsCollection: Collection;
 export let messagesCollection: Collection<IMessagesCollectionModel>;
 
-const url = `mongodb://${process.env.SERVER_IP}:27017`; // если MongoDB работает локально на порту 27017
-
 const botDbName = 'bot_db'; // замените на имя вашей базы данных
 const predictionsCollectionName = 'predictions'; // имя коллекции с предсказаниями
 
 const messagesCollectionName = 'messages'; // имя коллекции с предсказаниями
 
 // Функция для инициализации базы данных
-export const initializeDatabase = async () => {
+export const initializeDatabase = async (url: string) => {
   try {
     // Закрываем предыдущее подключение, если оно существует
     if (client) {
