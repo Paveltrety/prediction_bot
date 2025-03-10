@@ -5,7 +5,7 @@ import { botHandlers } from './bot/handlers/botHandlers';
 
 config();
 
-const bdUrl = `mongodb://${process.env.SERVER_IP}:27017`; // если MongoDB работает локально на порту 27017
+const bdUrl = `mongodb://${process.env.BD_USER}:${process.env.BD_PASSWORD}@${process.env.SERVER_IP}:27017?authSource=admin`;
 
 initializeDatabase(bdUrl);
 
