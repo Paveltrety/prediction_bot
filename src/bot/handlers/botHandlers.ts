@@ -51,6 +51,22 @@ const onMessage = async (msg: TelegramBot.Message) => {
   const userId = msg.from?.id;
   const username = msg.from?.username;
 
+  if (username === 'paveltrety' && msg.text === 'Бот, покажи статистику') {
+    const topUsers = await messagesCollection
+      .find({})
+      .sort({ messageCount: -1 }) // сортируем по убыванию
+      .limit(10)
+      .toArray();
+
+    let message = '*Топ-10 пользователей по количеству сообщений:*\n\n';
+
+    topUsers.forEach((user, index) => {
+      message += `${index + 1}. *${user.username}* — ${user.messageCount} сообщений\n`;
+    });
+
+    bot.sendMessage(msg.chat.id, message, { parse_mode: 'Markdown' });
+  }
+
   const user = await messagesCollection.findOne({ userId });
 
   if (userId) {
