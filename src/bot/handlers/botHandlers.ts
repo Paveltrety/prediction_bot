@@ -50,8 +50,10 @@ const onMessage = async (msg: TelegramBot.Message) => {
 
   const userId = msg.from?.id;
   const username = msg.from?.username;
+  const text = msg.text;
+  const chatId = msg.chat.id;
 
-  if (username === 'paveltrety' && msg.text === 'Бот, покажи статистику') {
+  if (username === 'paveltrety' && text === 'Бот, покажи статистику') {
     const topUsers = await messagesCollection
       .find({})
       .sort({ messageCount: -1 }) // сортируем по убыванию
@@ -68,6 +70,19 @@ const onMessage = async (msg: TelegramBot.Message) => {
   }
 
   const user = await messagesCollection.findOne({ userId });
+
+  if (userId && text) {
+    await dbActions.updateUserMessageCount({ isHasUserInfo: !!user, userId, username });
+
+    await dbActions.saveUserMessage({
+      userId,
+      chatId,
+      username: username || 'default',
+      messageId: msg.message_id,
+      text,
+      timestamp: new Date(msg.date * 1000),
+    });
+  }
 
   if (userId) {
     await dbActions.updateUserMessageCount({ isHasUserInfo: !!user, userId, username });

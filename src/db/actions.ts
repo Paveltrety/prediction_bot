@@ -1,4 +1,5 @@
 import { messagesCollectionsApi } from './api/messagesCollectionsApi';
+import { messagesHistoryCollection } from './init';
 
 interface IUpdateUserCountParams {
   isHasUserInfo: boolean;
@@ -39,7 +40,33 @@ const updateUserMessageCount = async ({ isHasUserInfo, userId, username }: IUpda
   }
 };
 
+const saveUserMessage = async ({
+  userId,
+  chatId,
+  messageId,
+  text,
+  username,
+  timestamp,
+}: {
+  userId: number;
+  chatId: number;
+  username: string;
+  messageId?: number;
+  text: string;
+  timestamp: Date;
+}) => {
+  await messagesHistoryCollection.insertOne({
+    userId,
+    chatId,
+    username,
+    messageId: messageId || 0,
+    text,
+    timestamp,
+  });
+};
+
 export const dbActions = {
   updateUserPredictionCount,
   updateUserMessageCount,
+  saveUserMessage,
 };
