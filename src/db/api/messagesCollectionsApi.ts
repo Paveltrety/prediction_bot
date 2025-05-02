@@ -1,5 +1,5 @@
 import { Filter, UpdateFilter } from 'mongodb';
-import { messagesCollection } from '../init';
+import { messagesCollection } from '../initDB';
 import { IMessagesCollectionModel } from '../types';
 
 const getUserInfo = async (userId: number) => {

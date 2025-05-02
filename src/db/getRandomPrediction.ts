@@ -1,5 +1,5 @@
 import { predictionsCollectionsApi } from './api/predictionsCollectionsApi';
-import { predictionsCollection } from './init';
+import { predictionsCollection } from './initDB';
 
 export const getRandomPrediction = async () => {
   if (!predictionsCollection) {

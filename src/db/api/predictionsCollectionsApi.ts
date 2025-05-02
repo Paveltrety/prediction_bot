@@ -1,6 +1,4 @@
-import { Filter, UpdateFilter } from 'mongodb';
-import { messagesCollection, predictionsCollection } from '../init';
-import { IMessagesCollectionModel } from '../types';
+import { predictionsCollection } from '../initDB';
 
 const getPredictionsCount = async () => {
   try {

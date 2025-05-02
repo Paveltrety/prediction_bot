@@ -1,10 +1,9 @@
 import TelegramBot, { InlineQueryResultArticle } from 'node-telegram-bot-api';
-import { messagesCollection } from '../../db/init';
-import { checkUsernameForCustumPrediction, getCustomPredictionForUser } from '../utils';
-import { E_USER_WITH_CUSTOM_PREDICTIONS } from '../../constants/predictions';
+import { messagesChunksCollection, messagesCollection } from '../../db/initDB';
 import { getRandomPrediction } from '../../db/getRandomPrediction';
 import { dbActions } from '../../db/actions';
 import { bot } from '../..';
+import { DEFAULT_USERNAME } from '../../constants/common';
 
 const onInlineQuery = async (query: TelegramBot.InlineQuery) => {
   const { id: messageId, from, query: userQuery } = query;
@@ -12,14 +11,11 @@ const onInlineQuery = async (query: TelegramBot.InlineQuery) => {
 
   if (!userQuery) {
     const user = await messagesCollection.findOne({ userId: id });
-
+    const messagesChunksUser = await messagesChunksCollection.findOne({ userId: id });
     let prediction: string | undefined;
 
-    if (username && checkUsernameForCustumPrediction(username)) {
-      prediction = getCustomPredictionForUser({
-        predictionCount: user?.predictionCount,
-        username: username as E_USER_WITH_CUSTOM_PREDICTIONS,
-      });
+    if (messagesChunksUser?.text) {
+      prediction = await dbActions.generateAIPrediction(messagesChunksUser?.text);
     }
 
     if (!prediction) {
@@ -31,9 +27,9 @@ const onInlineQuery = async (query: TelegramBot.InlineQuery) => {
         type: 'article',
         id: messageId, // Уникальный id для ответа
         title: 'Получить предсказание',
-        description: 'Узнай свое будущее, лох',
+        description: 'Узнай свое будущее, крендель',
         input_message_content: {
-          message_text: `@${username}, твое предсказание:\n\n ${prediction}`,
+          message_text: `@${username}, твое предсказание:\n\n${prediction}`,
         },
       },
     ];
@@ -77,11 +73,13 @@ const onMessage = async (msg: TelegramBot.Message) => {
     await dbActions.saveUserMessage({
       userId,
       chatId,
-      username: username || 'default',
+      username: username || DEFAULT_USERNAME,
       messageId: msg.message_id,
       text,
       timestamp: new Date(msg.date * 1000),
     });
+
+    await dbActions.tryCreateChunkForUser({ username: DEFAULT_USERNAME, userId, chatId });
   }
 
   if (userId) {
