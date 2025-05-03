@@ -3,6 +3,7 @@ export interface IMessagesCollectionModel {
   username: string;
   messageCount: number;
   predictionCount: number;
+  predictionAIHistory: string[];
 }
 
 export interface IMessagesHistoryCollectionModel {

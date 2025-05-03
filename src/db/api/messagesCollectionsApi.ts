@@ -11,6 +11,19 @@ const getUserInfo = async (userId: number) => {
   }
 };
 
+const getTopUsers = async (limit: number | undefined = 10) => {
+  try {
+    const topUsers = await messagesCollection
+      .find({})
+      .sort({ messageCount: -1 }) // сортируем по убыванию
+      .limit(limit)
+      .toArray();
+    return topUsers;
+  } catch (error) {
+    return [];
+  }
+};
+
 const createUser = async (data: IMessagesCollectionModel) => {
   try {
     await messagesCollection.insertOne(data);
@@ -31,4 +44,5 @@ export const messagesCollectionsApi = {
   getUserInfo,
   createUser,
   updateUserInfo,
+  getTopUsers,
 };

@@ -2,25 +2,31 @@ import { messagesCollectionsApi } from './api/messagesCollectionsApi';
 import { messagesChunksCollection, messagesHistoryCollection } from './initDB';
 import { ISaveUserMessageParams, ITryCreateChunkForUserParams } from './types';
 import { openAI } from '../openAI/initOpenAI';
+import { DEFAULT_USERNAME } from '../constants/common';
 
 interface IUpdateUserCountParams {
   isHasUserInfo: boolean;
   userId: number;
   username?: string;
+  predictionAI?: string;
 }
 
-const updateUserPredictionCount = async ({ isHasUserInfo, userId, username }: IUpdateUserCountParams) => {
+const updatePredictionInfoForUser = async ({ isHasUserInfo, userId, username, predictionAI }: IUpdateUserCountParams) => {
   try {
     if (isHasUserInfo) {
       // Увеличиваем счетчик сообщений
-      await messagesCollectionsApi.updateUserInfo({ userId }, { $inc: { predictionCount: 1 } });
+      await messagesCollectionsApi.updateUserInfo(
+        { userId },
+        { $inc: { predictionCount: 1 }, ...(predictionAI ? { $push: { predictionAIHistory: predictionAI } } : {}) },
+      );
     } else {
       // Если пользователя нет, создаем новую запись
       await messagesCollectionsApi.createUser({
         userId,
-        username: username || 'unknown',
+        username: username || DEFAULT_USERNAME,
         messageCount: 0,
         predictionCount: 1,
+        predictionAIHistory: predictionAI ? [predictionAI] : [],
       });
     }
   } catch (err) {
@@ -35,7 +41,13 @@ const updateUserMessageCount = async ({ isHasUserInfo, userId, username }: IUpda
       await messagesCollectionsApi.updateUserInfo({ userId }, { $inc: { messageCount: 1 } });
     } else {
       // Если пользователя нет, создаем новую запись
-      await messagesCollectionsApi.createUser({ userId, username: username || 'unknown', messageCount: 1, predictionCount: 0 });
+      await messagesCollectionsApi.createUser({
+        userId,
+        username: username || DEFAULT_USERNAME,
+        messageCount: 1,
+        predictionCount: 0,
+        predictionAIHistory: [],
+      });
     }
   } catch (err) {
     console.error('Ошибка обновления статистики:', err);
@@ -101,7 +113,7 @@ const generateAIPrediction = async (text: string) => {
 };
 
 export const dbActions = {
-  updateUserPredictionCount,
+  updatePredictionInfoForUser,
   updateUserMessageCount,
   saveUserMessage,
   tryCreateChunkForUser,

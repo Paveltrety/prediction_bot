@@ -1,21 +1,24 @@
 import TelegramBot, { InlineQueryResultArticle } from 'node-telegram-bot-api';
-import { messagesChunksCollection, messagesCollection } from '../../db/initDB';
+import { messagesChunksCollection } from '../../db/initDB';
 import { getRandomPrediction } from '../../db/getRandomPrediction';
 import { dbActions } from '../../db/actions';
 import { bot } from '../..';
 import { DEFAULT_USERNAME } from '../../constants/common';
+import { messagesCollectionsApi } from '../../db/api/messagesCollectionsApi';
 
 const onInlineQuery = async (query: TelegramBot.InlineQuery) => {
   const { id: messageId, from, query: userQuery } = query;
   const { id, username } = from;
 
   if (!userQuery) {
-    const user = await messagesCollection.findOne({ userId: id });
+    const user = messagesCollectionsApi.getUserInfo(id);
     const messagesChunksUser = await messagesChunksCollection.findOne({ userId: id });
     let prediction: string | undefined;
+    let isHasPredictionAI: boolean = false;
 
     if (messagesChunksUser?.text) {
       prediction = await dbActions.generateAIPrediction(messagesChunksUser?.text);
+      isHasPredictionAI = true;
     }
 
     if (!prediction) {
@@ -34,7 +37,12 @@ const onInlineQuery = async (query: TelegramBot.InlineQuery) => {
       },
     ];
 
-    await dbActions.updateUserPredictionCount({ isHasUserInfo: !!user, userId: id, username });
+    await dbActions.updatePredictionInfoForUser({
+      isHasUserInfo: !!user,
+      userId: id,
+      username,
+      predictionAI: isHasPredictionAI ? prediction : undefined,
+    });
     bot.answerInlineQuery(messageId, result, { cache_time: 0 });
   }
 };
@@ -50,11 +58,7 @@ const onMessage = async (msg: TelegramBot.Message) => {
   const chatId = msg.chat.id;
 
   if (username === 'paveltrety' && text === 'Бот, покажи статистику') {
-    const topUsers = await messagesCollection
-      .find({})
-      .sort({ messageCount: -1 }) // сортируем по убыванию
-      .limit(10)
-      .toArray();
+    const topUsers = await messagesCollectionsApi.getTopUsers(10);
 
     let message = '*Топ-10 пользователей по количеству сообщений:*\n\n';
 
@@ -65,7 +69,7 @@ const onMessage = async (msg: TelegramBot.Message) => {
     bot.sendMessage(msg.chat.id, message, { parse_mode: 'Markdown' });
   }
 
-  const user = await messagesCollection.findOne({ userId });
+  const user = messagesCollectionsApi.getUserInfo(userId || 0);
 
   if (userId && text) {
     await dbActions.updateUserMessageCount({ isHasUserInfo: !!user, userId, username });
@@ -79,11 +83,7 @@ const onMessage = async (msg: TelegramBot.Message) => {
       timestamp: new Date(msg.date * 1000),
     });
 
-    await dbActions.tryCreateChunkForUser({ username: DEFAULT_USERNAME, userId, chatId });
-  }
-
-  if (userId) {
-    await dbActions.updateUserMessageCount({ isHasUserInfo: !!user, userId, username });
+    await dbActions.tryCreateChunkForUser({ username: username || DEFAULT_USERNAME, userId, chatId });
   }
 };
 
