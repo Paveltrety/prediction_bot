@@ -11,13 +11,13 @@ const onInlineQuery = async (query: TelegramBot.InlineQuery) => {
   const { id, username } = from;
 
   if (!userQuery) {
-    const user = messagesCollectionsApi.getUserInfo(id);
+    const user = await messagesCollectionsApi.getUserInfo(id);
     const messagesChunksUser = await messagesChunksCollection.findOne({ userId: id });
     let prediction: string | undefined;
     let isHasPredictionAI: boolean = false;
 
     if (messagesChunksUser?.text) {
-      prediction = await dbActions.generateAIPrediction(messagesChunksUser?.text);
+      prediction = await dbActions.generateAIPrediction(messagesChunksUser.text, user?.predictionAIHistory || []);
       isHasPredictionAI = true;
     }
 
@@ -69,7 +69,7 @@ const onMessage = async (msg: TelegramBot.Message) => {
     bot.sendMessage(msg.chat.id, message, { parse_mode: 'Markdown' });
   }
 
-  const user = messagesCollectionsApi.getUserInfo(userId || 0);
+  const user = await messagesCollectionsApi.getUserInfo(userId || 0);
 
   if (userId && text) {
     await dbActions.updateUserMessageCount({ isHasUserInfo: !!user, userId, username });

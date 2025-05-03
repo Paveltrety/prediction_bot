@@ -78,6 +78,9 @@ const tryCreateChunkForUser = async (params: ITryCreateChunkForUserParams) => {
   const from = unprocessedMessages[0].timestamp;
   const to = unprocessedMessages[unprocessedMessages.length - 1].timestamp;
 
+  // Удалить старые чанки юзера
+  await messagesChunksCollection.deleteMany({ userId, chatId });
+
   await messagesChunksCollection.insertOne({
     username,
     userId,
@@ -92,15 +95,18 @@ const tryCreateChunkForUser = async (params: ITryCreateChunkForUserParams) => {
   await messagesHistoryCollection.deleteMany({ _id: { $in: ids } });
 };
 
-const generateAIPrediction = async (text: string) => {
+const generateAIPrediction = async (text: string, predictionHistory: string[]) => {
   try {
+    const pastPredictions = predictionHistory.length
+      ? `Вот так выглядели твои прошлые предскзаания для этого пользователя: ${predictionHistory.join(', ')} Новое предсказание должно быть уникальным`
+      : '';
+
     const completion = await openAI.chat.completions.create({
       model: 'deepseek/deepseek-chat-v3-0324:free',
       messages: [
         {
           role: 'system',
-          content:
-            "Ты шуточный астролог с грубым и пошлым юмором. Вот пример твоих предсказаний на день: \'Устроишься на крутую работу. Не пройдешь испыталку\', \'Взломают твой телефон и выложат нюдсы во все паблики\', \'Придешь за халявной едой в кафе, а тебе насрут в руку\', \'Сегодня тебе подарят большой букет. Жаль что венерический\'. На основе сообщений, который писал юзер в чат ты должен придумать колкое и смешное предсказание. Предсказание не должно быть длинным. В твоем ответе должна быть только строка с предсказанием и все.",
+          content: `Ты шуточный астролог с грубым и пошлым юмором. Вот пример твоих предсказаний на день: \'Устроишься на крутую работу. Не пройдешь испыталку\', \'Взломают твой телефон и выложат нюдсы во все паблики\', \'Придешь за халявной едой в кафе, а тебе насрут в руку\', \'Сегодня тебе подарят большой букет. Жаль что венерический\'. На основе сообщений, который писал юзер в чат ты должен придумать колкое и смешное предсказание. ${pastPredictions} Предсказание должно быть на русском языке и не должно быть длинным. В твоем ответе должна быть только строка с предсказанием и все.`,
         },
         { role: 'user', content: `Вот такие сообщения писал пользовтаель: ${text}` },
       ],
